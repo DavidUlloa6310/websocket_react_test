@@ -23,31 +23,37 @@ function App() {
     e.preventDefault();
     e.returnValue = "";
 
-    socket.emit("leave");
+    socket.emit("playerLeave", { username: username });
+    socket.disconnect();
     isConnected(false);
   });
 
   useEffect(() => {
     if (isConnected) {
-      const socket = io("http://127.0.0.1:5000", {
+      const socket = io("http://127.0.0.1:5000/play", {
         auth: { username: username },
       });
 
       setSocket(socket);
 
-      socket.on("connect", (data) => {
-        // DO SOMETHING WHEN USER CONNECTS (MAYBE MOVE INTO WAITING SCREEN?)
-        console.log(data);
+      socket.on("startGame", (data) => {
+        console.log(
+          `Game started! Room name: ${data.roomName}, Opponent name: ${data.opponentName}`
+        );
       });
 
-      socket.on("disconnect", (data) => {
-        // DO SOMETHING WHEN USER DISCONNECTS (SAME AS LEAVES)
-        console.log(data);
+      socket.on("finishedWaitingRoom", (data) => {
+        console.log("Received 'finishedWaitingRoom'...");
+        socket.emit("readyGame", {
+          roomName: data.roomName,
+          opponentName: data.opponentName,
+        });
       });
 
-      socket.on("leave", (data) => {
-        // DO SOMETHING WHEN USER LEAVES
-        setIsConnected(false);
+      socket.on("finishedGame", (data) => {
+        console.log(
+          `Finished game. Looser: ${data.lostPlayer}, Winner: ${data.wonPlayer}`
+        );
       });
 
       return function cleanup() {
@@ -62,13 +68,33 @@ function App() {
         onClick={() => {
           setIsConnected((prevState) => {
             // SEND MESSAGE TO SOCKET THAT USER LEFT
-            if (prevState) socket.emit("leave", { username: username });
+            if (prevState) socket.emit("playerLeave", { username: username });
             return !prevState;
           });
         }}
       >
         {isConnected ? "Disconnect" : "Connect"}
       </button>
+      {isConnected && (
+        <button
+          onClick={() => {
+            socket.emit("joinGame", { username: username });
+          }}
+        >
+          Start Game
+        </button>
+      )}
+
+      {isConnected && (
+        <button
+          onClick={() => {
+            console.log("Emitting playerLeave...");
+            socket.emit("playerLeave", { username: username });
+          }}
+        >
+          Leave Game
+        </button>
+      )}
     </div>
   );
 }
