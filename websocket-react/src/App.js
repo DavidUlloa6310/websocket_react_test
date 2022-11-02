@@ -95,6 +95,17 @@ function App() {
           Leave Game
         </button>
       )}
+
+      {isConnected && (
+        <button
+          onClick={() => {
+            console.log("Emitting playerLeave...");
+            socket.emit("playerWin", { username: username });
+          }}
+        >
+          Win Game
+        </button>
+      )}
     </div>
   );
 }
